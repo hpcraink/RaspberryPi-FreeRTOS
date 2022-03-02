@@ -2,4 +2,5 @@ kernel.elf
 kernel.list
 kernel.map
 kernel.syms
+kernel7.img
 build/
