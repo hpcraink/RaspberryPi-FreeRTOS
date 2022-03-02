@@ -17,6 +17,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
+#include <stdarg.h>
 #include <uspios.h>
 #include <FreeRTOS.h>
 #include <task.h>
@@ -112,13 +113,94 @@ int GetMACAddress (unsigned char Buffer[6]){
 __attribute__((no_instrument_function))
 void LogWrite (const char *pSource, unsigned Severity, const char *pMessage, ...)
 {
-	/*va_list var;
+	va_list var;
 	va_start (var, pMessage);
 
-	LoggerWriteV (LoggerGet (), pSource, (TLogSeverity) Severity, pMessage, var);
+	// LoggerWriteV (LoggerGet (), pSource, (TLogSeverity) Severity, pMessage, var);
+	#define LEN 320
+	char buf[LEN];
+	int i;
+	for (i = 0; i < (sizeof(buf)-1); i++) {
+		if ('\0' == *pMessage)
+			break;
+		if ('%' == *pMessage) {
+			pMessage++;			// get next char, the type qualifier;
+			char type = *(pMessage++);
+			// As long as we have some length specification (for int/string) --> continue
+			while (type >= '0' && type <= '9')
+				type = *(pMessage++);
 
-	va_end (var);*/
-	println(pMessage, 0xFFFFFFFF);
+			switch (type) {
+				case 'u': {
+					    unsigned int div = 1000*1000*1000;
+						unsigned int v = va_arg(var, unsigned int);
+						// println("Unsigned int", 0xffffffff);
+						while (div >= 10) {
+							char digit = v / div;
+							if (0 != digit || 10 == div) {
+								buf[i++] = digit + '0';
+								v = v % div;
+							}
+							if (i == sizeof(buf)-1)
+								break;
+							div = div / 10;
+						}
+						break;
+					}
+				case 'x':
+				case 'X': {
+					unsigned int div = (1 << 28);
+					unsigned int v = va_arg(var, unsigned int);
+					// println("Unsigned int Hex", 0xffffffff);
+					while (div >= 16) {
+						char digit = v / div;
+						if (0 != digit || 16 == div) {
+							if (digit < 10) {
+								buf[i++] = digit + '0';
+							} else {
+								buf[i++] = digit + 'A';
+							}
+							v = v % div;
+						}
+						if (i == sizeof(buf)-1)
+							break;
+						div = div / 16;
+					}
+				}
+				case 's': {
+					char * p = va_arg(var, char *);
+					// println("String", 0xffffffff);
+					while (*p) {
+						buf[i++] = *p++;
+						if (i == sizeof(buf)-1)
+							break;
+					}
+				}
+				default:
+				    buf[i++]=type;
+			}
+		} else
+			buf[i] = *pMessage++;
+	}
+	va_end (var);
+	buf[i] = '\0';
+	int color;
+	switch (Severity) {
+		case LOG_ERROR:
+			color = RED_TEXT;
+			break;
+		case LOG_WARNING:
+		    color = ORANGE_TEXT;
+			break;
+		case LOG_NOTICE:
+			color = BLUE_TEXT;
+			break;
+		case LOG_DEBUG:
+		default:
+			color = WHITE_TEXT;
+	}
+	println(buf, color);
+
 }
 
 #ifndef NDEBUG
