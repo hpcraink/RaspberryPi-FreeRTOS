@@ -70,8 +70,7 @@ Therefore ipconfigPACKET_FILLER_SIZE is defined a 2 (bytes).
 I think that most EMAC's have an option to set this 2-byte offset for both incoming and outgoing packets.*/
 #define ipconfigPACKET_FILLER_SIZE 0
 
-#define portTICK_PERIOD_MS portTICK_RATE_MS
-#define pdMS_TO_TICKS( xTimeInMs ) ( ( portTickType ) xTimeInMs * ( configTICK_RATE_HZ / ( ( portTickType ) 1000 ) ) )
+// #define pdMS_TO_TICKS( xTimeInMs ) ( ( portTickType ) xTimeInMs * ( configTICK_RATE_HZ / ( ( portTickType ) 1000 ) ) )
 
 //The size, in words (not bytes), of the stack allocated to the FreeRTOS+TCP RTOS task.
 #define ipconfigIP_TASK_STACK_SIZE_WORDS 1024
@@ -79,9 +78,10 @@ I think that most EMAC's have an option to set this 2-byte offset for both incom
 //sets the priority of the RTOS task that executes the TCP/IP stack.
 #define ipconfigIP_TASK_PRIORITY 1
 
-//To use volatile list structure members
-#define configLIST_VOLATILE volatile
-
 #define configEMAC_TASK_STACK_SIZE 1024
+
+#define ipconfigEVENT_QUEUE_LENGTH 96
+
+#define ipconfigNETWORK_MTU 586
 
 #endif /* FREERTOS_IP_CONFIG_H */

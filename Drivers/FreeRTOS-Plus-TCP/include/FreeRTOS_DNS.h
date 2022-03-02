@@ -1,70 +1,38 @@
 /*
- * FreeRTOS+TCP Labs Build 160112 (C) 2016 Real Time Engineers ltd.
- * Authors include Hein Tibosch and Richard Barry
+ * FreeRTOS+TCP V2.3.2 LTS Patch 2
+ * Copyright (C) 2020 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
  *
- *******************************************************************************
- ***** NOTE ******* NOTE ******* NOTE ******* NOTE ******* NOTE ******* NOTE ***
- ***                                                                         ***
- ***                                                                         ***
- ***   FREERTOS+TCP IS STILL IN THE LAB (mainly because the FTP and HTTP     ***
- ***   demos have a dependency on FreeRTOS+FAT, which is only in the Labs    ***
- ***   download):                                                            ***
- ***                                                                         ***
- ***   FreeRTOS+TCP is functional and has been used in commercial products   ***
- ***   for some time.  Be aware however that we are still refining its       ***
- ***   design, the source code does not yet quite conform to the strict      ***
- ***   coding and style standards mandated by Real Time Engineers ltd., and  ***
- ***   the documentation and testing is not necessarily complete.            ***
- ***                                                                         ***
- ***   PLEASE REPORT EXPERIENCES USING THE SUPPORT RESOURCES FOUND ON THE    ***
- ***   URL: http://www.FreeRTOS.org/contact  Active early adopters may, at   ***
- ***   the sole discretion of Real Time Engineers Ltd., be offered versions  ***
- ***   under a license other than that described below.                      ***
- ***                                                                         ***
- ***                                                                         ***
- ***** NOTE ******* NOTE ******* NOTE ******* NOTE ******* NOTE ******* NOTE ***
- *******************************************************************************
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
  *
- * FreeRTOS+TCP can be used under two different free open source licenses.  The
- * license that applies is dependent on the processor on which FreeRTOS+TCP is
- * executed, as follows:
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
  *
- * If FreeRTOS+TCP is executed on one of the processors listed under the Special 
- * License Arrangements heading of the FreeRTOS+TCP license information web 
- * page, then it can be used under the terms of the FreeRTOS Open Source 
- * License.  If FreeRTOS+TCP is used on any other processor, then it can be used
- * under the terms of the GNU General Public License V2.  Links to the relevant
- * licenses follow:
- * 
- * The FreeRTOS+TCP License Information Page: http://www.FreeRTOS.org/tcp_license 
- * The FreeRTOS Open Source License: http://www.FreeRTOS.org/license
- * The GNU General Public License Version 2: http://www.FreeRTOS.org/gpl-2.0.txt
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
- * FreeRTOS+TCP is distributed in the hope that it will be useful.  You cannot
- * use FreeRTOS+TCP unless you agree that you use the software 'as is'.
- * FreeRTOS+TCP is provided WITHOUT ANY WARRANTY; without even the implied
- * warranties of NON-INFRINGEMENT, MERCHANTABILITY or FITNESS FOR A PARTICULAR
- * PURPOSE. Real Time Engineers Ltd. disclaims all conditions and terms, be they
- * implied, expressed, or statutory.
- *
- * 1 tab == 4 spaces!
- *
+ * http://aws.amazon.com/freertos
  * http://www.FreeRTOS.org
- * http://www.FreeRTOS.org/plus
- * http://www.FreeRTOS.org/labs
- *
  */
 
 #ifndef FREERTOS_DNS_H
-#define FREERTOS_DNS_H
+    #define FREERTOS_DNS_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+    #ifdef __cplusplus
+        extern "C" {
+    #endif
 
 /* Application level configuration options. */
-#include "FreeRTOSIPConfig.h"
-#include "IPTraceMacroDefaults.h"
+    #include "FreeRTOSIPConfig.h"
+    #include "IPTraceMacroDefaults.h"
 
 
 /* The Link-local Multicast Name Resolution (LLMNR)
@@ -74,92 +42,110 @@ extern "C" {
  *
  * The target IP address will be 224.0.0.252
  */
-#if( ipconfigBYTE_ORDER == pdFREERTOS_BIG_ENDIAN )
-	#define	ipLLMNR_IP_ADDR			0xE00000FC
-#else
-	#define	ipLLMNR_IP_ADDR			0xFC0000E0
-#endif /* ipconfigBYTE_ORDER == pdFREERTOS_BIG_ENDIAN */
+    #if ( ipconfigBYTE_ORDER == pdFREERTOS_BIG_ENDIAN )
+        #define ipLLMNR_IP_ADDR    0xE00000FCUL
+    #else
+        #define ipLLMNR_IP_ADDR    0xFC0000E0UL
+    #endif /* ipconfigBYTE_ORDER == pdFREERTOS_BIG_ENDIAN */
 
-#define	ipLLMNR_PORT	5355 /* Standard LLMNR port. */
-#define	ipDNS_PORT		53	/* Standard DNS port. */
-#define	ipDHCP_CLIENT	67
-#define	ipDHCP_SERVER	68
-#define	ipNBNS_PORT		137	/* NetBIOS Name Service. */
-#define	ipNBDGM_PORT	138 /* Datagram Service, not included. */
+    #define ipLLMNR_PORT           5355 /* Standard LLMNR port. */
+    #define ipDNS_PORT             53   /* Standard DNS port. */
+    #define ipDHCP_CLIENT          67
+    #define ipDHCP_SERVER          68
+    #define ipNBNS_PORT            137 /* NetBIOS Name Service. */
+    #define ipNBDGM_PORT           138 /* Datagram Service, not included. */
+
+    #if ( ipconfigUSE_LLMNR == 1 ) || ( ipconfigUSE_NBNS == 1 )
 
 /*
  * The following function should be provided by the user and return true if it
  * matches the domain name.
  */
-extern portBASE_TYPE xApplicationDNSQueryHook( const char *pcName );
+        extern BaseType_t xApplicationDNSQueryHook( const char * pcName );
+    #endif /* ( ipconfigUSE_LLMNR == 1 ) || ( ipconfigUSE_NBNS == 1 ) */
 
 /*
  * LLMNR is very similar to DNS, so is handled by the DNS routines.
  */
-unsigned int ulDNSHandlePacket( NetworkBufferDescriptor_t *pxNetworkBuffer );
+    uint32_t ulDNSHandlePacket( const NetworkBufferDescriptor_t * pxNetworkBuffer );
 
-#if( ipconfigUSE_LLMNR == 1 )
-	extern const MACAddress_t xLLMNR_MacAdress;
-#endif /* ipconfigUSE_LLMNR */
+    #if ( ipconfigUSE_LLMNR == 1 )
+        /* The LLMNR MAC address is 01:00:5e:00:00:fc */
+        extern const MACAddress_t xLLMNR_MacAdress;
+    #endif /* ipconfigUSE_LLMNR */
 
-#if( ipconfigUSE_NBNS != 0 )
-
-	/*
-	 * Inspect a NetBIOS Names-Service message.  If the name matches with ours
-	 * (xApplicationDNSQueryHook returns true) an answer will be sent back.
-	 * Note that LLMNR is a better protocol for name services on a LAN as it is
-	 * less polluted
-	 */
-	unsigned int ulNBNSHandlePacket (NetworkBufferDescriptor_t *pxNetworkBuffer );
-
-#endif /* ipconfigUSE_NBNS */
-
-#if( ipconfigUSE_DNS_CACHE != 0 )
-
-	unsigned int FreeRTOS_dnslookup( const char *pcHostName );
-
-#endif /* ipconfigUSE_DNS_CACHE != 0 */
-
-#if( ipconfigDNS_USE_CALLBACKS != 0 )
-
-	/*
-	 * Users may define this type of function as a callback.
-	 * It will be called when a DNS reply is received or when a timeout has been reached.
-	 */
-	typedef void (* FOnDNSEvent ) ( const char * /* pcName */, void * /* pvSearchID */, unsigned int /* ulIPAddress */ );
-
-	/*
-	 * Asynchronous version of gethostbyname()
-	 * xTimeout is in units of ms.
-	 */
-	unsigned int FreeRTOS_gethostbyname_a( const char *pcHostName, FOnDNSEvent pCallback, void *pvSearchID, portTickType xTimeout );
-	void FreeRTOS_gethostbyname_cancel( void *pvSearchID );
-
-#endif
+    #if ( ipconfigUSE_NBNS != 0 )
 
 /*
- * FULL, UP-TO-DATE AND MAINTAINED REFERENCE DOCUMENTATION FOR ALL THESE
- * FUNCTIONS IS AVAILABLE ON THE FOLLOWING URL:
- * _TBD_ Add URL
+ * Inspect a NetBIOS Names-Service message.  If the name matches with ours
+ * (xApplicationDNSQueryHook returns true) an answer will be sent back.
+ * Note that LLMNR is a better protocol for name services on a LAN as it is
+ * less polluted
  */
-unsigned int FreeRTOS_gethostbyname( const char *pcHostName );
+        uint32_t ulNBNSHandlePacket( NetworkBufferDescriptor_t * pxNetworkBuffer );
+
+    #endif /* ipconfigUSE_NBNS */
+
+    #if ( ipconfigUSE_DNS_CACHE != 0 )
+
+/* Look for the indicated host name in the DNS cache. Returns the IPv4
+ * address if present, or 0x0 otherwise. */
+        uint32_t FreeRTOS_dnslookup( const char * pcHostName );
+
+/* Remove all entries from the DNS cache. */
+        void FreeRTOS_dnsclear( void );
+
+    #endif /* ipconfigUSE_DNS_CACHE != 0 */
+
+    #if ( ipconfigDNS_USE_CALLBACKS != 0 )
+
+/*
+ * Users may define this type of function as a callback.
+ * It will be called when a DNS reply is received or when a timeout has been reached.
+ */
+        typedef void (* FOnDNSEvent ) ( const char * /* pcName */,
+                                        void * /* pvSearchID */,
+                                        uint32_t /* ulIPAddress */ );
+
+/*
+ * Asynchronous version of gethostbyname()
+ * xTimeout is in units of ms.
+ */
+        uint32_t FreeRTOS_gethostbyname_a( const char * pcHostName,
+                                           FOnDNSEvent pCallback,
+                                           void * pvSearchID,
+                                           TickType_t uxTimeout );
+        void FreeRTOS_gethostbyname_cancel( void * pvSearchID );
+
+    #endif /* if ( ipconfigDNS_USE_CALLBACKS != 0 ) */
+
+/*
+ * Lookup a IPv4 node in a blocking-way.
+ * It returns a 32-bit IP-address, 0 when not found.
+ * gethostbyname() is already deprecated.
+ */
+    uint32_t FreeRTOS_gethostbyname( const char * pcHostName );
+
+    #if ( ipconfigDNS_USE_CALLBACKS == 1 )
+
+/*
+ * The function vDNSInitialise() initialises the DNS module.
+ * It will be called "internally", by the IP-task.
+ */
+        void vDNSInitialise( void );
+    #endif /* ( ipconfigDNS_USE_CALLBACKS == 1 ) */
+
+    #if ( ipconfigDNS_USE_CALLBACKS == 1 )
+
+/*
+ * A function local to the library.
+ */
+        extern void vDNSCheckCallBack( void * pvSearchID );
+    #endif
 
 
-#ifdef __cplusplus
-}	/* extern "C" */
-#endif
+    #ifdef __cplusplus
+        } /* extern "C" */
+    #endif
 
 #endif /* FREERTOS_DNS_H */
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -1,58 +1,31 @@
 /*
- * FreeRTOS+TCP Labs Build 160112 (C) 2016 Real Time Engineers ltd.
- * Authors include Hein Tibosch and Richard Barry
+ * FreeRTOS+TCP V2.3.2 LTS Patch 2
+ * Copyright (C) 2020 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
  *
- *******************************************************************************
- ***** NOTE ******* NOTE ******* NOTE ******* NOTE ******* NOTE ******* NOTE ***
- ***                                                                         ***
- ***                                                                         ***
- ***   FREERTOS+TCP IS STILL IN THE LAB (mainly because the FTP and HTTP     ***
- ***   demos have a dependency on FreeRTOS+FAT, which is only in the Labs    ***
- ***   download):                                                            ***
- ***                                                                         ***
- ***   FreeRTOS+TCP is functional and has been used in commercial products   ***
- ***   for some time.  Be aware however that we are still refining its       ***
- ***   design, the source code does not yet quite conform to the strict      ***
- ***   coding and style standards mandated by Real Time Engineers ltd., and  ***
- ***   the documentation and testing is not necessarily complete.            ***
- ***                                                                         ***
- ***   PLEASE REPORT EXPERIENCES USING THE SUPPORT RESOURCES FOUND ON THE    ***
- ***   URL: http://www.FreeRTOS.org/contact  Active early adopters may, at   ***
- ***   the sole discretion of Real Time Engineers Ltd., be offered versions  ***
- ***   under a license other than that described below.                      ***
- ***                                                                         ***
- ***                                                                         ***
- ***** NOTE ******* NOTE ******* NOTE ******* NOTE ******* NOTE ******* NOTE ***
- *******************************************************************************
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
  *
- * FreeRTOS+TCP can be used under two different free open source licenses.  The
- * license that applies is dependent on the processor on which FreeRTOS+TCP is
- * executed, as follows:
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
  *
- * If FreeRTOS+TCP is executed on one of the processors listed under the Special 
- * License Arrangements heading of the FreeRTOS+TCP license information web 
- * page, then it can be used under the terms of the FreeRTOS Open Source 
- * License.  If FreeRTOS+TCP is used on any other processor, then it can be used
- * under the terms of the GNU General Public License V2.  Links to the relevant
- * licenses follow:
- * 
- * The FreeRTOS+TCP License Information Page: http://www.FreeRTOS.org/tcp_license 
- * The FreeRTOS Open Source License: http://www.FreeRTOS.org/license
- * The GNU General Public License Version 2: http://www.FreeRTOS.org/gpl-2.0.txt
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
- * FreeRTOS+TCP is distributed in the hope that it will be useful.  You cannot
- * use FreeRTOS+TCP unless you agree that you use the software 'as is'.
- * FreeRTOS+TCP is provided WITHOUT ANY WARRANTY; without even the implied
- * warranties of NON-INFRINGEMENT, MERCHANTABILITY or FITNESS FOR A PARTICULAR
- * PURPOSE. Real Time Engineers Ltd. disclaims all conditions and terms, be they
- * implied, expressed, or statutory.
- *
- * 1 tab == 4 spaces!
- *
+ * http://aws.amazon.com/freertos
  * http://www.FreeRTOS.org
- * http://www.FreeRTOS.org/plus
- * http://www.FreeRTOS.org/labs
- *
+ */
+
+/**
+ * @file FreeRTOS_Stream_Buffer.c
+ * @brief Provides the API for managing/creating the stream buffers in the FreeRTOS+TCP network stack.
  */
 
 /* Standard includes. */
@@ -69,163 +42,184 @@
 #include "FreeRTOS_Sockets.h"
 #include "FreeRTOS_IP_Private.h"
 
-/*
- * uxStreamBufferAdd( )
- * Adds data to a stream buffer.  If uxOffset > 0, data will be written at
- * an offset from uxHead while uxHead will not be moved yet.  This possibility
- * will be used when TCP data is received while earlier data is still missing.
- * If 'pucData' equals NULL, the function is called to advance 'uxHead' only.
+
+/**
+ * @brief Adds data to a stream buffer.
+ *
+ * @param[in,out] pxBuffer: The buffer to which the bytes will be added.
+ * @param[in] uxOffset: If uxOffset > 0, data will be written at an offset from uxHead
+ *                      while uxHead will not be moved yet.
+ * @param[in] pucData: A pointer to the data to be added.
+ * @param[in] uxByteCount: The number of bytes to add.
+ *
+ * @return The number of bytes added to the buffer.
  */
-size_t uxStreamBufferAdd( StreamBuffer_t *pxBuffer, size_t uxOffset, const unsigned char *pucData, size_t uxCount )
+size_t uxStreamBufferAdd( StreamBuffer_t * pxBuffer,
+                          size_t uxOffset,
+                          const uint8_t * pucData,
+                          size_t uxByteCount )
 {
-size_t uxSpace, uxNextHead, uxFirst;
+    size_t uxSpace, uxNextHead, uxFirst;
+    size_t uxCount = uxByteCount;
 
-	uxSpace = uxStreamBufferGetSpace( pxBuffer );
+    uxSpace = uxStreamBufferGetSpace( pxBuffer );
 
-	/* If uxOffset > 0, items can be placed in front of uxHead */
-	if( uxSpace > uxOffset )
-	{
-		uxSpace -= uxOffset;
-	}
-	else
-	{
-		uxSpace = 0;
-	}
+    /* If uxOffset > 0, items can be placed in front of uxHead */
+    if( uxSpace > uxOffset )
+    {
+        uxSpace -= uxOffset;
+    }
+    else
+    {
+        uxSpace = 0U;
+    }
 
-	/* The number of bytes that can be written is the minimum of the number of
-	bytes requested and the number available. */
-	uxCount = FreeRTOS_min_uint32( uxSpace, uxCount );
+    /* The number of bytes that can be written is the minimum of the number of
+     * bytes requested and the number available. */
+    uxCount = FreeRTOS_min_uint32( uxSpace, uxCount );
 
-	if( uxCount != 0 )
-	{
-		uxNextHead = pxBuffer->uxHead;
+    if( uxCount != 0U )
+    {
+        uxNextHead = pxBuffer->uxHead;
 
-		if( uxOffset != 0 )
-		{
-			/* ( uxOffset > 0 ) means: write in front if the uxHead marker */
-			uxNextHead += uxOffset;
-			if( uxNextHead >= pxBuffer->LENGTH )
-			{
-				uxNextHead -= pxBuffer->LENGTH;
-			}
-		}
+        if( uxOffset != 0U )
+        {
+            /* ( uxOffset > 0 ) means: write in front if the uxHead marker */
+            uxNextHead += uxOffset;
 
-		if( pucData != NULL )
-		{
-			/* Calculate the number of bytes that can be added in the first
-			write - which may be less than the total number of bytes that need
-			to be added if the buffer will wrap back to the beginning. */
-			uxFirst = FreeRTOS_min_uint32( pxBuffer->LENGTH - uxNextHead, uxCount );
+            if( uxNextHead >= pxBuffer->LENGTH )
+            {
+                uxNextHead -= pxBuffer->LENGTH;
+            }
+        }
 
-			/* Write as many bytes as can be written in the first write. */
-			memcpy2( ( void* ) ( pxBuffer->ucArray + uxNextHead ), pucData, uxFirst );
+        if( pucData != NULL )
+        {
+            /* Calculate the number of bytes that can be added in the first
+            * write - which may be less than the total number of bytes that need
+            * to be added if the buffer will wrap back to the beginning. */
+            uxFirst = FreeRTOS_min_uint32( pxBuffer->LENGTH - uxNextHead, uxCount );
 
-			/* If the number of bytes written was less than the number that
-			could be written in the first write... */
-			if( uxCount > uxFirst )
-			{
-				/* ...then write the remaining bytes to the start of the
-				buffer. */
-				memcpy2( ( void * )pxBuffer->ucArray, pucData + uxFirst, uxCount - uxFirst );
-			}
-		}
+            /* Write as many bytes as can be written in the first write. */
+            ( void ) memcpy( &( pxBuffer->ucArray[ uxNextHead ] ), pucData, uxFirst );
 
-		if( uxOffset == 0 )
-		{
-			/* ( uxOffset == 0 ) means: write at uxHead position */
-			uxNextHead += uxCount;
-			if( uxNextHead >= pxBuffer->LENGTH )
-			{
-				uxNextHead -= pxBuffer->LENGTH;
-			}
-			pxBuffer->uxHead = uxNextHead;
-		}
+            /* If the number of bytes written was less than the number that
+             * could be written in the first write... */
+            if( uxCount > uxFirst )
+            {
+                /* ...then write the remaining bytes to the start of the
+                 * buffer. */
+                ( void ) memcpy( pxBuffer->ucArray, &( pucData[ uxFirst ] ), uxCount - uxFirst );
+            }
+        }
 
-		if( xStreamBufferLessThenEqual( pxBuffer, pxBuffer->uxFront, uxNextHead ) != pdFALSE )
-		{
-			/* Advance the front pointer */
-			pxBuffer->uxFront = uxNextHead;
-		}
-	}
+        if( uxOffset == 0U )
+        {
+            /* ( uxOffset == 0 ) means: write at uxHead position */
+            uxNextHead += uxCount;
 
-	return uxCount;
+            if( uxNextHead >= pxBuffer->LENGTH )
+            {
+                uxNextHead -= pxBuffer->LENGTH;
+            }
+
+            pxBuffer->uxHead = uxNextHead;
+        }
+
+        if( xStreamBufferLessThenEqual( pxBuffer, pxBuffer->uxFront, uxNextHead ) != pdFALSE )
+        {
+            /* Advance the front pointer */
+            pxBuffer->uxFront = uxNextHead;
+        }
+    }
+
+    return uxCount;
 }
 /*-----------------------------------------------------------*/
 
-/*
- * lStreamBufferGet( )
- * 'uxOffset' can be used to read data located at a certain offset from 'lTail'.
- * If 'pucData' equals NULL, the function is called to advance 'lTail' only.
- * if 'xPeek' is pdTRUE, or if 'uxOffset' is non-zero, the 'lTail' pointer will
- * not be advanced.
+/**
+ * @brief Read bytes from stream buffer.
+ *
+ * @param[in] pxBuffer: The buffer from which the bytes will be read.
+ * @param[in] uxOffset: can be used to read data located at a certain offset from 'lTail'.
+ * @param[in,out] pucData: If 'pucData' equals NULL, the function is called to advance 'lTail' only.
+ * @param[in] uxMaxCount: The number of bytes to read.
+ * @param[in] xPeek: if 'xPeek' is pdTRUE, or if 'uxOffset' is non-zero, the 'lTail' pointer will
+ *                   not be advanced.
+ *
+ * @return The count of the bytes read.
  */
-size_t uxStreamBufferGet( StreamBuffer_t *pxBuffer, size_t uxOffset, unsigned char *pucData, size_t uxMaxCount, portBASE_TYPE xPeek )
+size_t uxStreamBufferGet( StreamBuffer_t * pxBuffer,
+                          size_t uxOffset,
+                          uint8_t * pucData,
+                          size_t uxMaxCount,
+                          BaseType_t xPeek )
 {
-size_t uxSize, uxCount, uxFirst, uxNextTail;
+    size_t uxSize, uxCount, uxFirst, uxNextTail;
 
-	/* How much data is available? */
-	uxSize = uxStreamBufferGetSize( pxBuffer );
+    /* How much data is available? */
+    uxSize = uxStreamBufferGetSize( pxBuffer );
 
-	if( uxSize > uxOffset )
-	{
-		uxSize -= uxOffset;
-	}
-	else
-	{
-		uxSize = 0;
-	}
+    if( uxSize > uxOffset )
+    {
+        uxSize -= uxOffset;
+    }
+    else
+    {
+        uxSize = 0U;
+    }
 
-	/* Use the minimum of the wanted bytes and the available bytes. */
-	uxCount = FreeRTOS_min_uint32( uxSize, uxMaxCount );
+    /* Use the minimum of the wanted bytes and the available bytes. */
+    uxCount = FreeRTOS_min_uint32( uxSize, uxMaxCount );
 
-	if( uxCount > 0 )
-	{
-		uxNextTail = pxBuffer->uxTail;
+    if( uxCount > 0U )
+    {
+        uxNextTail = pxBuffer->uxTail;
 
-		if( uxOffset != 0 )
-		{
-			uxNextTail += uxOffset;
-			if( uxNextTail >= pxBuffer->LENGTH )
-			{
-				uxNextTail -= pxBuffer->LENGTH;
-			}
-		}
+        if( uxOffset != 0U )
+        {
+            uxNextTail += uxOffset;
 
-		if( pucData != NULL )
-		{
-			/* Calculate the number of bytes that can be read - which may be
-			less than the number wanted if the data wraps around to the start of
-			the buffer. */
-			uxFirst = FreeRTOS_min_uint32( pxBuffer->LENGTH - uxNextTail, uxCount );
+            if( uxNextTail >= pxBuffer->LENGTH )
+            {
+                uxNextTail -= pxBuffer->LENGTH;
+            }
+        }
 
-			/* Obtain the number of bytes it is possible to obtain in the first
-			read. */
-			memcpy2( pucData, pxBuffer->ucArray + uxNextTail, uxFirst );
+        if( pucData != NULL )
+        {
+            /* Calculate the number of bytes that can be read - which may be
+             * less than the number wanted if the data wraps around to the start of
+             * the buffer. */
+            uxFirst = FreeRTOS_min_uint32( pxBuffer->LENGTH - uxNextTail, uxCount );
 
-			/* If the total number of wanted bytes is greater than the number
-			that could be read in the first read... */
-			if( uxCount > uxFirst )
-			{
-				/*...then read the remaining bytes from the start of the buffer. */
-				memcpy2( pucData + uxFirst, pxBuffer->ucArray, uxCount - uxFirst );
-			}
-		}
+            /* Obtain the number of bytes it is possible to obtain in the first
+             * read. */
+            ( void ) memcpy( pucData, &( pxBuffer->ucArray[ uxNextTail ] ), uxFirst );
 
-		if( ( xPeek == pdFALSE ) && ( uxOffset == 0L ) )
-		{
-			/* Move the tail pointer to effecively remove the data read from
-			the buffer. */
-			uxNextTail += uxCount;
+            /* If the total number of wanted bytes is greater than the number
+             * that could be read in the first read... */
+            if( uxCount > uxFirst )
+            {
+                /*...then read the remaining bytes from the start of the buffer. */
+                ( void ) memcpy( &( pucData[ uxFirst ] ), pxBuffer->ucArray, uxCount - uxFirst );
+            }
+        }
 
-			if( uxNextTail >= pxBuffer->LENGTH )
-			{
-				uxNextTail -= pxBuffer->LENGTH;
-			}
+        if( ( xPeek == pdFALSE ) && ( uxOffset == 0UL ) )
+        {
+            /* Move the tail pointer to effectively remove the data read from
+             * the buffer. */
+            uxNextTail += uxCount;
 
-			pxBuffer->uxTail = uxNextTail;
-		}
-	}
+            if( uxNextTail >= pxBuffer->LENGTH )
+            {
+                uxNextTail -= pxBuffer->LENGTH;
+            }
 
-	return uxCount;
+            pxBuffer->uxTail = uxNextTail;
+        }
+    }
+
+    return uxCount;
 }
-
