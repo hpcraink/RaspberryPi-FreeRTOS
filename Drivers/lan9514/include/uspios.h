@@ -91,6 +91,7 @@ int GetMACAddress (unsigned char Buffer[6]);	// "get board MAC address"
 #define LOG_NOTICE	3
 #define LOG_DEBUG	4
 
+__attribute__((format(print, 3, 4)))
 void LogWrite (const char *pSource,		// short name of module
 	       unsigned	   Severity,		// see above
 	       const char *pMessage, ...);	// uses printf format options
