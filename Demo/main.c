@@ -132,7 +132,7 @@ void serverListenTask(){
 	status = FreeRTOS_bind(listen_sock, &server, sizeof(server));
         printHex("bind status: ", (int)status, BLUE_TEXT);
         sockt = (FreeRTOS_Socket_t*)listen_sock;
-        printHex("Bind port: ", (unsigned int)sockt->usLocPort, BLUE_TEXT);
+        printHex("Bind port: ", (unsigned int)sockt->usLocalPort, BLUE_TEXT);
 
 
         println("Server task about to listen", BLUE_TEXT);
@@ -342,3 +342,6 @@ int main(void) {
 	}
 }
 
+
+void end(void) {
+}

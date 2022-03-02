@@ -44,6 +44,20 @@ static void prvSetupTimerInterrupt( void );
 extern void vPortISRStartFirstTask( void );
 
 /*-----------------------------------------------------------*/
+__attribute__((no_instrument_function))
+BaseType_t xApplicationGetRandomNumber( uint32_t *pulValue ) {
+	*pulValue = 4711;
+	return pdTRUE;
+}
+
+uint32_t ulApplicationGetNextSequenceNumber( uint32_t ulSourceAddress,
+                                             uint16_t usSourcePort,
+                                             uint32_t ulDestinationAddress,
+                                             uint16_t usDestinationPort ) {
+	uint32_t val;
+    xApplicationGetRandomNumber( &val );
+    return val;
+}
 
 /* 
  * Initialise the stack of a task to look exactly as if a call to 
@@ -157,7 +171,7 @@ void vPortEndScheduler( void )
 __attribute__((no_instrument_function))
 void vTickISR(int nIRQ, void *pParam )
 {
-	vTaskIncrementTick();
+	xTaskIncrementTick();
 
 	#if configUSE_PREEMPTION == 1
 	vTaskSwitchContext();

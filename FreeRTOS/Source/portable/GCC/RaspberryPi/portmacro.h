@@ -21,21 +21,31 @@ extern "C" {
 #define portDOUBLE		double
 #define portLONG			long
 #define portSHORT			short
-#define portSTACK_TYPE	unsigned portLONG
-#define portBASE_TYPE	portLONG
+#define portSTACK_TYPE	uint32_t
+#define portBASE_TYPE	long
+
+typedef portSTACK_TYPE   StackType_t;
+typedef long             BaseType_t;
+typedef unsigned long    UBaseType_t;
 
 #if( configUSE_16_BIT_TICKS == 1 )
-	typedef unsigned portSHORT portTickType;
-	#define portMAX_DELAY ( portTickType ) 0xffff
+	typedef unsigned portSHORT TickType_t;
+	#define portTickType TickType_t
+	#define portMAX_DELAY ( TickType_t ) 0xffff
 #else
-	typedef unsigned portLONG portTickType;
-	#define portMAX_DELAY ( portTickType ) 0xffffffff
+	typedef uint32_t TickType_t;
+	#define portTickType TickType_t
+	#define portMAX_DELAY ( TickType_t ) 0xffffffff
+
+/* 32-bit tick type on a 32-bit architecture, so reads of the tick count do
+ * not need to be guarded with a critical section. */
+	#define portTICK_TYPE_IS_ATOMIC    1
 #endif
 /*-----------------------------------------------------------*/	
 
 /* Architecture specifics. */
 #define portSTACK_GROWTH			( -1 )
-#define portTICK_RATE_MS			( ( portTickType ) 1000 / configTICK_RATE_HZ )		
+#define portTICK_PERIOD_MS			( ( TickType_t ) 1000 / configTICK_RATE_HZ )		
 #define portBYTE_ALIGNMENT			8
 #define portNOP()						__asm volatile ( "NOP" );
 /*-----------------------------------------------------------*/	
