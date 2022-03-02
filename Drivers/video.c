@@ -5,10 +5,25 @@
 
 #include <video.h>
 #include <mailbox.h>
-#include <5x5_font.h>
 char loaded = 0;
-#define CHAR_WIDTH 6
-#define CHAR_HEIGHT 8
+
+// Set to use the smaller 5x5 font
+// #define WANT_5x5_FONT
+
+#ifdef WANT_5x5_FONT
+#  include <5x5_font.h>
+#  define FIRSTCHAR ' '
+#  define LASTCHAR  0xFF
+#  define CHAR_WIDTH 6
+#  define CHAR_HEIGHT 8
+#else
+#  include <font.h>
+#  define FIRSTCHAR  0x21
+#  define LASTCHAR  0xFF
+#  define CHAR_WIDTH 8
+#  define CHAR_HEIGHT 16
+#endif
+
 int SCREEN_WIDTH;
 int SCREEN_HEIGHT;
 
@@ -105,6 +120,7 @@ void drawRect(unsigned int x1, unsigned int y1, unsigned int x2, unsigned int y2
     }
 }
 
+#ifdef WANT_5x5_FONT
 //characters are stored in 5x5_font.h as binary (6x8 font)
 //there are 6 bytes which describe 8 pixels in a column
 //	{0x7c,	0x24,	0x24,	0x24,	0x7c,	0x00}, // A
@@ -117,22 +133,50 @@ void drawRect(unsigned int x1, unsigned int y1, unsigned int x2, unsigned int y2
 //	1				1	0
 //	1				1	0
 __attribute__((no_instrument_function))
-void drawChar(unsigned char c, int x, int y, int colour){
-	int i, j;
-
+int CharGeneratorGetPixel (char chAscii, unsigned nPosX, unsigned nPosY)
+{
+    unsigned c = (unsigned)chAscii;
 	//convert the character to an index
 	c = c & 0x7F;
-	if (c < ' ') {
+	if (c < FIRSTCHAR) {
 		c = 0;
 	} else {
-		c -= ' ';
+		c -= FIRSTCHAR;
 	}
+
+	return font[c][nPosX] & (1<<nPosY) ? 1 : 0;
+}
+#else
+__attribute__((no_instrument_function))
+int CharGeneratorGetPixel (char chAscii, unsigned nPosX, unsigned nPosY)
+{
+        unsigned nAscii = (unsigned) chAscii;
+        if (   nAscii < FIRSTCHAR
+            || nAscii > LASTCHAR)
+        {
+                return 0;
+        }
+
+        unsigned nIndex = nAscii - FIRSTCHAR;
+        // assert (nPosX < CHAR_WIDTH);
+
+        if (nPosY >= CHAR_HEIGHT)
+        {
+                return 0;
+        }
+
+        return font[nIndex][nPosY] & (0x80 >> nPosX) ? 1 : 0;
+}
+#endif
+
+__attribute__((no_instrument_function))
+void drawChar(unsigned char c, int x, int y, int colour){
+	int i, j;
 
 	//draw pixels of the character
 	for (j = 0; j < CHAR_WIDTH; j++) {
 		for (i = 0; i < CHAR_HEIGHT; i++) {
-			//unsigned char temp = font[c][j];
-			if (font[c][j] & (1<<i)) {
+			if (CharGeneratorGetPixel(c, j, i)) {
 				framebuffer[(y + i) * SCREEN_WIDTH + (x + j)] = colour;
 			}
 		}
@@ -186,22 +230,25 @@ void printHex(const char* message, int hexi, int colour){
 if(loaded == 0) return; //if video isn't loaded don't bother
 	char hex[16] = {'0','1','2','3','4','5','6','7',
 					'8','9','A','B','C','D','E','F'};
-	char m[200];
-	int i = 0;
-	while (*message){
+	char m[216];
+	int i;
+	for (i = 0; i < (sizeof(m)-10); i++){
 		m[i] = *message++;
-		i++;
+		if ('\0' == m[i])
+			break;
 	}
 	//overwrite the null terminator
-	m[i + 0] = hex[(hexi >> 28)&0xF];
-	m[i + 1] = hex[(hexi >> 24)&0xF];
-	m[i + 2] = hex[(hexi >> 20)&0xF];
-	m[i + 3] = hex[(hexi >> 16)&0xF];
-	m[i + 4] = hex[(hexi >> 12)&0xF];
-	m[i + 5] = hex[(hexi >> 8)&0xF];
-	m[i + 6] = hex[(hexi >> 4)&0xF];
-	m[i + 7] = hex[(hexi >> 0)&0xF];
-	m[i + 8] = 0; //null termination
+	m[i + 0] = '0';
+	m[i + 1] = 'x';
+	m[i + 2] = hex[(hexi >> 28)&0xF];
+	m[i + 3] = hex[(hexi >> 24)&0xF];
+	m[i + 4] = hex[(hexi >> 20)&0xF];
+	m[i + 5] = hex[(hexi >> 16)&0xF];
+	m[i + 6] = hex[(hexi >> 12)&0xF];
+	m[i + 7] = hex[(hexi >> 8)&0xF];
+	m[i + 8] = hex[(hexi >> 4)&0xF];
+	m[i + 9] = hex[(hexi >> 0)&0xF];
+	m[i + 10] = 0; //null termination
 	println(m, colour);
 }
 
